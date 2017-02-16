@@ -30,8 +30,17 @@ test("forasync async iterable", function(pass, fail) {
   if(JSON.stringify(result1) == "[0,1,2]") {
    pass()
   } else {
-   fail("result should be [ 0, 1, 2 ] but is "+ result1)
+   fail("result should be [ 0, 1, 2 ] but is " + result1)
 } }) })
+
+test("forasync noniterable", function() {
+ try {
+  let result1 = forasync(true, function(...inputs) {
+   throw("should throw but executes callback with " + inputs)
+  })
+  throw("should throw but returns " + result1)
+ } catch(error) { }
+})
 
 test("forasync current iteration parameter", function(pass, fail) {
  let result1 = []
@@ -71,7 +80,7 @@ test("forasync stopping iteration", function(pass, fail) {
    fail("result should be [ 0, 1, 2 ] but is " + result1)
 } }) })
 
-test("forasync returned results promise", function(pass, fail) {
+test("forasync results promise", function(pass, fail) {
  forasync([ 0, 1, 2 ], function(result1) {
   return(result1 + 2)
  }).then(function(result2) {
@@ -108,7 +117,64 @@ test("forasync callback async error", function(pass, fail) {
 } }) })
 
 
-test("asyncgen toString method", function() {
+test("object.forasync", function(pass, fail) {
+ let result1 = { key1: "value1", key2: "value2" }
+ result1.forasync(function(...result2) {
+  if(JSON.stringify(result2) != '["key1","value1",null,1,{"key1":"value1","key2":"value2"}]') {
+   fail(`callback parameters should be [ "key", "value", stop(), 1, ${result1} ] but are ` + result2)
+  }
+  return(result2[2]("value"))
+ }).then(function(result3) {
+  if(JSON.stringify(result3) == '["value"]') {
+   pass()
+  } else {
+   fail('forasync result should be "value" but is ' + result3)
+} }) })
+
+test("array.forasync", function(pass, fail) {
+ let result1 = [ "value1", "value2" ]
+ result1.forasync(function(...result2) {
+  if(JSON.stringify(result2) != '["value1",0,null,1,["value1","value2"]]') {
+   fail(`callback parameters should be [ "value", 0, stop(), 1, ${result1} ] but are ` + result2)
+  }
+  return(result2[2]("value"))
+ }).then(function(result3) {
+  if(JSON.stringify(result3) == '["value"]') {
+   pass()
+  } else {
+   fail('forasync result should be "value" but is ' + result3)
+} }) })
+
+test("string.forasync", function(pass, fail) {
+ let result1 = "value"
+ result1.forasync(function(...result2) {
+  if(JSON.stringify(result2) != '["v",0,null,1,"value"]') {
+   fail('callback parameters should be [ "v", 0, stop(), 1, "value" ] but are ' + result2)
+  }
+  return(result2[2]("value"))
+ }).then(function(result3) {
+  if(JSON.stringify(result3) == '["value"]') {
+   pass()
+  } else {
+   fail('forasync result should be "value" but is ' + result3)
+} }) })
+
+test("number.forasync", function(pass, fail) {
+ let result1 = 4
+ result1.forasync(function(...result2) {
+  if(JSON.stringify(result2) != '[1,null,1,4]') {
+   fail('callback parameters should be [ 1, stop(), 1, 4 ] but are ' + result2)
+  }
+  return(result2[1]("value"))
+ }).then(function(result3) {
+  if(JSON.stringify(result3) == '["value"]') {
+   pass()
+  } else {
+   fail('foreach result should be "value" but is ' + result3)
+} }) })
+
+
+test("asyncgen toString", function() {
  let result1 = asyncgen(function*() { })
  let result2 = result1.toString()
  if(result2 != "async function* () { }") {

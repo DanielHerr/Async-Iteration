@@ -1,15 +1,14 @@
 "use strict"
 
 function forasync(iterable, callback) {
- let iterator
- if(typeof(iterable[Symbol.asyncIterator]) == "function") {
+ let iterator, results = [], stopped = false
+ if(iterable[Symbol.asyncIterator]) {
   iterator = iterable[Symbol.asyncIterator]()
- } else if(typeof(iterable[Symbol.iterator]) == "function") {
+ } else if(iterable[Symbol.iterator]) {
   iterator = iterable[Symbol.iterator]()
  } else {
-  throw(TypeError("(value)[Symbol.asyncIterator] is not a function"))
+  throw(TypeError("Value is not iterable: value[Symbol.asyncIterator] is not a function"))
  }
- let results = [], stopped = false
  function proceed() {
   return(Promise.resolve(iterator.next()).then(function({ done, value }) {
    if(done || stopped) {
@@ -28,6 +27,23 @@ function forasync(iterable, callback) {
  })) } })) }
  return(proceed())
 }
+
+for(let datatype of [ Object, Array, String ]) {
+ Object.defineProperty(datatype.prototype, "forasync", {
+  writable: true, configurable: true, enumerable: false, value(callback) {
+  let iterable = this
+  return(forasync(iterate(iterable), function(...results) {
+   results.pop()
+   return(callback(...results.shift(), ...results, iterable))
+})) } }) }
+Object.defineProperty(Number.prototype, "forasync", {
+  writable: true, configurable: true, enumerable: false, value(callback) {
+   return(forasync(this, callback))
+} })
+for(let datatype of [ Boolean, Symbol ]) {
+ Object.defineProperty(datatype.prototype, "forasync", {
+  writable: true, configurable: true, enumerable: false, value: undefined
+}) }
 
 function asyncgen(generator) {
  let orginalsource = generator.toString.bind(generator)
